@@ -1,0 +1,39 @@
+name: Build and checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: macOS build and core checks
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Show toolchain
+        run: swift --version
+      - name: Run deterministic checks
+        run: swift run DeadlineCoreChecks
+      - name: Build application bundle
+        run: bash scripts/build.sh
+      - name: Preserve development package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ConfDDL-macOS-${{ runner.arch }}
+          path: dist/ConfDDL-macOS.zip
+          if-no-files-found: error
+          retention-days: 14
